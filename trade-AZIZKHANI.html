@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>trade M.AZIZKHANI</title>
+<style>
+:root{--bg:#0f141a;--card:#18202a;--tx:#e6edf3;--mu:#8b98a5;--g:#2ebd85;--r:#f6465d;--b:#f0b90b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:Tahoma,system-ui,sans-serif;padding:10px;max-width:1100px;margin:auto}
+h1{font-size:20px;margin:6px 0;color:var(--b);direction:ltr;text-align:center}
+.card{background:var(--card);border-radius:10px;padding:10px;margin:8px 0}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+label{font-size:12px;color:var(--mu);display:block}
+input,select{background:#0f141a;color:var(--tx);border:1px solid #2b3744;border-radius:6px;padding:7px;width:100px;direction:ltr}
+button{background:var(--b);color:#000;border:0;border-radius:6px;padding:9px 16px;font-weight:bold;cursor:pointer}
+canvas{width:100%;display:block;background:#0b0f14;border-radius:8px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px}
+.st{background:#0f141a;border-radius:8px;padding:8px;text-align:center;font-size:12px;color:var(--mu)}
+.st b{display:block;font-size:16px;color:var(--tx);direction:ltr}
+.g{color:var(--g)!important}.r{color:var(--r)!important}
+.sc{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:12px;direction:ltr;text-align:center}
+td,th{padding:5px;border-bottom:1px solid #2b3744;white-space:nowrap}
+.note{font-size:11px;color:var(--mu);line-height:1.8}
+</style>
+</head>
+<body>
+<h1>trade M.AZIZKHANI</h1>
+<div class="card">
+<div class="row">
+<div><label>نماد رمز ارز</label><input id="sym" value="BTC"></div>
+<div><label>سرمایه ($)</label><input id="cap" type="number" value="1000"></div>
+<div><label>حداکثر ریسک (٪)</label><input id="risk" type="number" value="2" step="0.1"></div>
+<div><label>سود به ضرر (R)</label><input id="rr" type="number" value="3" step="0.5"></div>
+<div><label>حداکثر اهرم</label><input id="lev" type="number" value="5"></div>
+<button onclick="run()">اجرا و تحلیل</button>
+<label style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="auto" style="width:auto">به‌روزرسانی خودکار</label>
+</div>
+<div class="row" style="margin-top:8px;border-top:1px solid #2b3744;padding-top:8px">
+<b style="font-size:13px">بک‌تست:</b>
+<div><label>از تاریخ</label><input id="d1" type="date" style="width:135px"></div>
+<div><label>تا تاریخ</label><input id="d2" type="date" style="width:135px"></div>
+<div><label>تعداد کندل تاریخی</label><input id="nc" type="number" value="1500"></div>
+<div><label>کارمزد هر سمت (٪)</label><input id="fee" type="number" value="0.1" step="0.01"></div>
+<div><label>حساسیت پیوت</label><input id="pk" type="number" value="4" min="2" max="10"></div>
+<div><label>تایید واگرایی</label><select id="need"><option value="1">RSI یا MACD</option><option value="2">هر دو</option></select></div>
+<button onclick="run()">اجرای بک‌تست</button>
+<button onclick="csv()" style="background:#2b3744;color:#e6edf3">خروجی CSV</button>
+</div>
+<div id="msg" class="note">بازه زمانی: ۴ ساعته · داده از چند منبع (نوبیتکس، کوکوین، بایننس، OKX) به‌ترتیب تست می‌شود تا بدون فیلترشکن به یکی وصل شود.</div>
+</div>
+<div class="card" id="live"></div>
+<div class="card"><canvas id="c1" height="380"></canvas></div>
+<div class="card"><canvas id="c2" height="140"></canvas></div>
+<div class="card stats" id="stats"></div>
+<div class="card sc"><table id="tb"></table></div>
+<div class="note">این برنامه یک شبیه‌ساز/تحلیل‌گر است و سفارش واقعی ثبت نمی‌کند و توصیه مالی نیست. نتایج بک‌تست تضمینی برای آینده نیست.</div>
+
+<script>
+const $=id=>document.getElementById(id);
+async function tf(u,ms=8000){const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(u,{signal:c.signal});if(!r.ok)throw 0;return await r.json()}finally{clearTimeout(t)}}
+const now=()=>Math.floor(Date.now()/1000),H4=14400;
+const bn=h=>async(s,N)=>{let o=[],e=Date.now();while(o.length<N){const r=(await tf(`https://${h}/api/v3/klines?symbol=${s}USDT&interval=4h&limit=1000&endTime=${e}`,12000)).map(x=>({t:x[0],o:+x[1],h:+x[2],l:+x[3],c:+x[4]}));if(!r.length)break;o=r.concat(o);e=r[0].t-1}return o};
+const SRC=[
+['Nobitex',async(s,N)=>{const to=now();const d=await tf(`https://api.nobitex.ir/market/udf/history?symbol=${s}USDT&resolution=240&from=${to-N*H4}&to=${to}`,15000);if(d.s!='ok')throw 0;return d.t.map((t,i)=>({t:t*1000,o:+d.o[i],h:+d.h[i],l:+d.l[i],c:+d.c[i]}))}],
+['KuCoin',async(s,N)=>{let o=[],e=now();while(o.length<N){const st=e-1500*H4;const d=await tf(`https://api.kucoin.com/api/v1/market/candles?type=4hour&symbol=${s}-USDT&startAt=${st}&endAt=${e}`,12000);const r=(d.data||[]).reverse().map(x=>({t:x[0]*1000,o:+x[1],c:+x[2],h:+x[3],l:+x[4]}));if(!r.length)break;o=r.concat(o);e=st}return o}],
+['Binance Vision',bn('data-api.binance.vision')],
+['Binance',bn('api.binance.com')],
+['OKX',async s=>(await tf(`https://www.okx.com/api/v5/market/candles?instId=${s}-USDT&bar=4H&limit=300`)).data.reverse().map(x=>({t:+x[0],o:+x[1],h:+x[2],l:+x[3],c:+x[4]}))]
+];
+async function load(s,N){for(const [n,f] of SRC){try{let d=await f(s,N);d=d.sort((a,b)=>a.t-b.t).filter((v,i,A)=>!i||v.t!=A[i-1].t);if(d.length>250)return{n,d:d.slice(-N)}}catch(e){}}throw 'no data'}
+
+function ema(a,n){const k=2/(n+1),o=[a[0]];for(let i=1;i<a.length;i++)o.push(a[i]*k+o[i-1]*(1-k));return o}
+function rsi(c,n=14){const o=Array(c.length).fill(50);let g=0,l=0;for(let i=1;i<c.length;i++){const d=c[i]-c[i-1];const u=Math.max(d,0),w=Math.max(-d,0);if(i<=n){g+=u/n;l+=w/n}else{g=(g*(n-1)+u)/n;l=(l*(n-1)+w)/n}if(i>=n)o[i]=l==0?100:100-100/(1+g/l)}return o}
+function atr(d,n=14){const o=[0];let a=0;for(let i=1;i<d.length;i++){const tr=Math.max(d[i].h-d[i].l,Math.abs(d[i].h-d[i-1].c),Math.abs(d[i].l-d[i-1].c));a=i<=n?a+tr/n:(a*(n-1)+tr)/n;o.push(a)}return o}
+
+function analyze(d,P){
+ const c=d.map(x=>x.c),R=rsi(c),e12=ema(c,12),e26=ema(c,26),M=e12.map((v,i)=>v-e26[i]),S=ema(M,9),H=M.map((v,i)=>v-S[i]);
+ const E50=ema(c,50),E200=ema(c,200),A=atr(d),K=P.K,n=d.length;
+ const pl=[],ph=[],trades=[];let eq=P.cap,open=null;const curve=[{i:0,v:eq}];
+ const isL=p=>{for(let j=p-K;j<=p+K;j++)if(j!=p&&d[j].l<=d[p].l)return false;return true};
+ const isH=p=>{for(let j=p-K;j<=p+K;j++)if(j!=p&&d[j].h>=d[p].h)return false;return true};
+ const close=(x,i,px,res)=>{x.exitI=i;x.exitP=px;x.fee=x.entry*x.size*P.fee/100*2;x.pnl=(x.side=='L'?px-x.entry:x.entry-px)*x.size-x.fee;eq+=x.pnl;x.res=res;x.eq=eq;curve.push({i,v:eq});open=null};
+ for(let i=210;i<n;i++){
+  if(open){const b=d[i];const L=open.side=='L';
+   if(L?b.l<=open.sl:b.h>=open.sl)close(open,i,open.sl,'SL');
+   else if(L?b.h>=open.tp:b.l<=open.tp)close(open,i,open.tp,'TP');}
+  const p=i-K;let sig=null;
+  if(isL(p)){const q=[...pl].reverse().find(x=>p-x>=6&&p-x<=80);
+   if(q!=null&&d[p].l<d[q].l){const by=[];if(R[p]>R[q]+1)by.push('RSI');if(M[p]>M[q])by.push('MACD');
+    if(by.length>=P.need&&c[p]<E50[p]&&R[p]<45&&H[i]>H[i-1]&&c[i]>d[i-1].c){sig={side:'L',sl:d[p].l-0.2*A[i],by,p,q}}}
+   pl.push(p)}
+  if(isH(p)){const q=[...ph].reverse().find(x=>p-x>=6&&p-x<=80);
+   if(q!=null&&d[p].h>d[q].h){const by=[];if(R[p]<R[q]-1)by.push('RSI');if(M[p]<M[q])by.push('MACD');
+    if(by.length>=P.need&&c[p]>E50[p]&&R[p]>55&&H[i]<H[i-1]&&c[i]<d[i-1].c){sig={side:'S',sl:d[p].h+0.2*A[i],by,p,q}}}
+   ph.push(p)}
+  if(sig&&!open){const en=c[i],dist=Math.abs(en-sig.sl);
+   if(dist>0&&dist/en<0.08){let size=eq*P.risk/100/dist;size=Math.min(size,eq*P.lev/en);
+    const tp=sig.side=='L'?en+P.rr*dist:en-P.rr*dist;
+    open={side:sig.side,i,entry:en,sl:sig.sl,tp,size,by:sig.by,p:sig.p,q:sig.q,riskUsd:size*dist};trades.push(open)}}
+ }
+ return{c,R,H,E50,E200,trades,curve,eq,open,n};
+}
+
+function stats(a,P){const T=a.trades.filter(t=>t.res),W=T.filter(t=>t.pnl>0),Ls=T.filter(t=>t.pnl<=0);
+ const sum=A=>A.reduce((s,t)=>s+t.pnl,0),g=sum(W),l=-sum(Ls),pf=l?g/l:g?'∞':0,ex=T.length?T.reduce((s,t)=>s+t.pnl/t.riskUsd,0)/T.length:0;
+ let pk=P.cap,dd=0;a.curve.forEach(x=>{pk=Math.max(pk,x.v);dd=Math.max(dd,(pk-x.v)/pk)});
+ let mc=0,cc=0;T.forEach(t=>{if(t.pnl<=0){cc++;mc=Math.max(mc,cc)}else cc=0});
+ const wr=A=>A.length?(A.filter(t=>t.pnl>0).length/A.length*100).toFixed(0)+'٪':'-',lg=T.filter(t=>t.side=='L'),sh=T.filter(t=>t.side=='S');
+ const f=(l,v,c='')=>`<div class="st">${l}<b class="${c}">${v}</b></div>`,up=a.eq>=P.cap?'g':'r';
+ $('stats').innerHTML=f('سرمایه نهایی','$'+a.eq.toFixed(2),up)+f('سود/زیان',((a.eq/P.cap-1)*100).toFixed(1)+'٪',up)+f('تعداد معاملات',T.length)+f('نرخ برد',wr(T))+f('Profit Factor',typeof pf=='number'?pf.toFixed(2):pf)+f('حداکثر افت',(dd*100).toFixed(1)+'٪','r')+
+ f('امید ریاضی (R)',ex.toFixed(2),ex>0?'g':'r')+f('میانگین سود','$'+(W.length?g/W.length:0).toFixed(2),'g')+f('میانگین ضرر','$'+(Ls.length?-l/Ls.length:0).toFixed(2),'r')+f('بیشترین ضرر پیاپی',mc)+f('Long: تعداد/برد',lg.length+' / '+wr(lg))+f('Short: تعداد/برد',sh.length+' / '+wr(sh))+f('کارمزد کل','$'+T.reduce((s,t)=>s+t.fee,0).toFixed(2))}
+
+function cv(id){const c=$(id),r=devicePixelRatio||1,w=c.clientWidth,h=+c.getAttribute('height');c.width=w*r;c.height=h*r;const x=c.getContext('2d');x.scale(r,r);return{x,w,h}}
+function draw(d,a,fc){
+ const{x,w,h}=cv('c1'),V=Math.min(220,d.length-1),s=fc==null?d.length-V:Math.max(0,Math.min(d.length-V,Math.round(fc-V/2))),E=s+V,pad=52;
+ let lo=1e18,hi=0;for(let i=s;i<E;i++){lo=Math.min(lo,d[i].l);hi=Math.max(hi,d[i].h)}
+ const vis=a.trades.filter(t=>t.i<E&&(t.exitI||a.n)>=s);
+ vis.forEach(t=>{hi=Math.max(hi,t.side=='L'?t.tp:t.sl);lo=Math.min(lo,t.side=='L'?t.sl:t.tp)});
+ const g=(hi-lo)*.04;lo-=g;hi+=g;const X=i=>(i-s+.5)*(w-pad)/V,Y=v=>10+(hi-v)/(hi-lo)*(h-20),cw=Math.max(1,(w-pad)/V*.7);
+ x.fillStyle='#8b98a5';x.font='10px sans-serif';x.textAlign='left';
+ for(let k=0;k<=5;k++){const v=lo+(hi-lo)*k/5,y=Y(v);x.strokeStyle='#1b2430';x.beginPath();x.moveTo(0,y);x.lineTo(w-pad,y);x.stroke();x.fillText(v.toPrecision(6),w-pad+4,y+3)}
+ vis.forEach(t=>{const x1=X(Math.max(t.i,s)),x2=X(Math.min(t.exitI||a.n-1,E-1));
+  x.fillStyle='rgba(46,189,133,.15)';x.fillRect(x1,Y(Math.max(t.entry,t.tp)),x2-x1,Math.abs(Y(t.tp)-Y(t.entry)));
+  x.fillStyle='rgba(246,70,93,.15)';x.fillRect(x1,Y(Math.max(t.entry,t.sl)),x2-x1,Math.abs(Y(t.sl)-Y(t.entry)))});
+ const line=(arr,col)=>{x.strokeStyle=col;x.lineWidth=1;x.beginPath();for(let i=s;i<E;i++){i==s?x.moveTo(X(i),Y(arr[i])):x.lineTo(X(i),Y(arr[i]))}x.stroke()};
+ line(a.E50,'#f0b90b');line(a.E200,'#5b8def');
+ for(let i=s;i<E;i++){const b=d[i],up=b.c>=b.o;x.strokeStyle=x.fillStyle=up?'#2ebd85':'#f6465d';x.beginPath();x.moveTo(X(i),Y(b.h));x.lineTo(X(i),Y(b.l));x.stroke();x.fillRect(X(i)-cw/2,Y(Math.max(b.o,b.c)),cw,Math.max(1,Math.abs(Y(b.o)-Y(b.c))))}
+ vis.forEach(t=>{const L=t.side=='L',py=Y(t.entry);
+  if(t.i>=s){const px=X(t.i);x.fillStyle=L?'#2ebd85':'#f6465d';x.beginPath();if(L){x.moveTo(px,py+3);x.lineTo(px-6,py+14);x.lineTo(px+6,py+14)}else{x.moveTo(px,py-3);x.lineTo(px-6,py-14);x.lineTo(px+6,py-14)}x.fill()}
+  if(t.exitI&&t.exitI<E){x.fillStyle=t.res=='TP'?'#2ebd85':'#f6465d';x.beginPath();x.arc(X(t.exitI),Y(t.exitP),3.5,0,7);x.fill()}
+  x.strokeStyle='#f0b90b';x.setLineDash([3,3]);x.beginPath();x.moveTo(X(Math.max(t.i,s)),py);x.lineTo(X(Math.min(t.exitI||a.n-1,E-1)),py);x.stroke();x.setLineDash([])});
+ x.fillStyle='#8b98a5';x.textAlign='left';x.fillText('▲ خرید  ▼ فروش · زرد EMA50 · آبی EMA200 · ناحیه سبز=سود، قرمز=ضرر · '+new Date(d[s].t).toISOString().slice(0,10)+' تا '+new Date(d[E-1].t).toISOString().slice(0,10),6,h-4)}
+
+function drawEq(a,P){const{x,w,h}=cv('c2'),pts=a.curve;let lo=Math.min(...pts.map(p=>p.v),P.cap),hi=Math.max(...pts.map(p=>p.v),P.cap);const g=(hi-lo||1)*.1;lo-=g;hi+=g;
+ const X=i=>10+i*(w-70)/Math.max(1,pts.length-1),Y=v=>10+(hi-v)/(hi-lo)*(h-20);
+ x.strokeStyle='#2b3744';x.setLineDash([4,4]);x.beginPath();x.moveTo(0,Y(P.cap));x.lineTo(w-60,Y(P.cap));x.stroke();x.setLineDash([]);
+ x.strokeStyle='#f0b90b';x.lineWidth=2;x.beginPath();pts.forEach((p,i)=>i?x.lineTo(X(i),Y(p.v)):x.moveTo(X(i),Y(p.v)));x.stroke();
+ x.fillStyle='#8b98a5';x.font='10px sans-serif';x.fillText('$'+lo.toFixed(0),w-55,h-8);x.fillText('$'+hi.toFixed(0),w-55,14);x.fillText('منحنی سرمایه',6,h-4)}
+
+function tbl(d,a){const f=v=>(+v).toPrecision(6),D=i=>new Date(d[i].t).toISOString().slice(0,16).replace('T',' ');
+ $('tb').innerHTML='<tr><th>#</th><th>نوع</th><th>زمان ورود</th><th>ورود</th><th>حد ضرر</th><th>حد سود</th><th>ریسک $</th><th>واگرایی</th><th>نتیجه</th><th>P/L $</th><th>R</th></tr>'+
+ a.trades.slice().reverse().map((t,k)=>`<tr onclick="go(${a.trades.length-1-k})" style="cursor:pointer"><td>${a.trades.length-k}</td><td class="${t.side=='L'?'g':'r'}">${t.side=='L'?'Long':'Short'}</td><td>${D(t.i)}</td><td>${f(t.entry)}</td><td>${f(t.sl)}</td><td>${f(t.tp)}</td><td>${t.riskUsd.toFixed(2)}</td><td>${t.by.join('+')}</td><td class="${t.res=='TP'?'g':t.res?'r':''}">${t.res||'باز'}</td><td class="${t.pnl>0?'g':'r'}">${t.pnl!=null?t.pnl.toFixed(2):'-'}</td><td>${t.pnl!=null?(t.pnl/t.riskUsd).toFixed(2):'-'}</td></tr>`).join('')}
+
+function liveBox(d,a,src,sym){const i=a.n-1,tr=a.c[i]>a.E50[i]&&a.E50[i]>a.E200[i]?'صعودی':a.c[i]<a.E50[i]&&a.E50[i]<a.E200[i]?'نزولی':'خنثی/در حال تغییر';
+ const o=a.open;$('live').innerHTML=`<b>${sym}/USDT</b> · منبع داده: ${src} · قیمت: <span style="direction:ltr;display:inline-block">${d[i].c}</span> · روند ۴ساعته: <b>${tr}</b> · RSI: ${a.R[i].toFixed(1)}<br>`+
+ (o?`<b class="${o.side=='L'?'g':'r'}">موقعیت باز ${o.side=='L'?'خرید':'فروش'}:</b> ورود ${o.entry.toPrecision(6)} · ضرر ${o.sl.toPrecision(6)} · سود ${o.tp.toPrecision(6)} · حجم ${o.size.toPrecision(4)}`:'<span class="note">در حال حاضر موقعیت بازی وجود ندارد؛ برنامه منتظر واگرایی در انتهای روند + تایید مومنتوم است.</span>')}
+
+let D,A;const iso=t=>new Date(t).toISOString().slice(0,10);
+async function run(){
+ const sym=$('sym').value.trim().toUpperCase().replace(/USDT$/,''),P={cap:+$('cap').value,risk:+$('risk').value,rr:+$('rr').value,lev:+$('lev').value,fee:+$('fee').value||0,K:Math.max(2,Math.min(10,+$('pk').value||4)),need:+$('need').value};
+ $('msg').textContent='در حال دریافت داده...';
+ try{const r=await load(sym,Math.min(5000,+$('nc').value||1500));let d=r.d;
+  const t1=$('d1').value?Date.parse($('d1').value):0,t2=$('d2').value?Date.parse($('d2').value)+864e5:1e18;
+  let a0=d.findIndex(v=>v.t>=t1);if(a0<0)a0=0;let b0=d.findIndex(v=>v.t>=t2);if(b0<0)b0=d.length;
+  d=d.slice(Math.max(0,a0-210),b0);
+  if(d.length<260){$('msg').textContent='داده‌ی کافی برای این بازه نیست؛ بازه را بزرگ‌تر یا تعداد کندل را بیشتر کنید (۲۱۰ کندل اول فقط برای محاسبه‌ی اندیکاتورهاست).';return}
+  const a=analyze(d,P);D=d;A=a;
+  $('msg').textContent=`${d.length-210} کندل ۴ساعته بک‌تست شد: ${iso(d[210].t)} تا ${iso(d[d.length-1].t)} · ${new Date().toLocaleTimeString('fa-IR')}`;
+  liveBox(d,a,r.n,sym);draw(d,a);drawEq(a,P);stats(a,P);tbl(d,a)}
+ catch(e){$('msg').textContent='دریافت داده ممکن نشد. نماد را بررسی کنید (مثل BTC یا ETH) یا تعداد کندل را کمتر کنید.'}}
+function go(j){const t=A.trades[j];draw(D,A,(t.i+(t.exitI||A.n))/2);$('c1').scrollIntoView({behavior:'smooth'})}
+function csv(){if(!A)return;const r=['side,time,entry,sl,tp,size,risk,by,result,pnl,fee'];A.trades.forEach(t=>r.push([t.side,new Date(D[t.i].t).toISOString(),t.entry,t.sl,t.tp,t.size,t.riskUsd.toFixed(2),t.by.join('+'),t.res||'open',t.pnl!=null?t.pnl.toFixed(2):'',t.fee!=null?t.fee.toFixed(2):''].join(',')));const u=URL.createObjectURL(new Blob([r.join('\n')],{type:'text/csv'})),l=document.createElement('a');l.href=u;l.download='trades.csv';l.click()}
+setInterval(()=>{if($('auto').checked)run()},300000);
+run();
+</script>
+</body>
+</html>

@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>دستیار تصمیم‌گیری معامله رمزارز</title>
+<style>
+:root{--bg:#eef2f1;--panel:#fff;--ink:#14232b;--mute:#5d6f76;--line:#d5dedc;--acc:#0d6e6e;--up:#0f8a5f;--down:#c4382e;--amb:#b97a00}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Vazirmatn,"IRANSans",Tahoma,system-ui,sans-serif;line-height:1.8;font-size:15px}
+.wrap{max-width:900px;margin:0 auto;padding:18px 14px 60px}
+h1{font-size:22px;margin:6px 0 2px}
+h2{font-size:17px;margin:0 0 10px}
+.sub{color:var(--mute);margin:0 0 14px}
+form{display:flex;gap:8px}
+input,select,button{font:inherit;border:1px solid var(--line);border-radius:8px;padding:9px 12px;background:#fff;color:var(--ink)}
+input#q{flex:1;min-width:0;direction:ltr;text-align:right}
+button.go{background:var(--acc);color:#fff;border-color:var(--acc);cursor:pointer;font-weight:600}
+button:disabled{opacity:.6}
+:focus-visible{outline:3px solid #f2b84b;outline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.chips button{padding:2px 10px;font-size:13px;cursor:pointer;direction:ltr}
+.set{display:flex;flex-wrap:wrap;gap:12px;color:var(--mute);font-size:13px;margin-bottom:8px}
+.set label{display:flex;align-items:center;gap:6px}
+.set input{width:90px;padding:4px 8px}
+.set input[type=checkbox]{width:auto}
+.set button{padding:4px 12px;cursor:pointer}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-top:14px}
+.price{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px}
+.price b{font-size:30px;direction:ltr}
+.pill{direction:ltr;font-weight:600}
+.up{color:var(--up)}.down{color:var(--down)}.amb{color:var(--amb)}
+.mute{color:var(--mute);font-size:13px}
+.verdict{border-width:2px;border-color:var(--acc)}
+.vlabel{font-size:26px;font-weight:800;margin:0}
+.gauge{direction:ltr;position:relative;height:16px;border-radius:8px;margin:34px 0 6px;background:linear-gradient(90deg,var(--down),#e7d9a6 50%,var(--up))}
+.gauge i{position:absolute;top:-9px;width:4px;height:34px;background:var(--ink);border-radius:2px;transform:translateX(-2px)}
+.gauge span{position:absolute;top:-30px;font-size:12px;background:var(--ink);color:#fff;padding:0 6px;border-radius:4px;transform:translateX(-50%);direction:ltr}
+.ends{direction:ltr;display:flex;justify-content:space-between;font-size:12px;color:var(--mute)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
+th{color:var(--mute);font-weight:500}
+td.n{direction:ltr;text-align:left}
+.bar{position:relative;height:6px;background:var(--line);border-radius:3px;direction:ltr;margin:4px 0}
+.bar i{position:absolute;top:0;bottom:0;border-radius:3px}
+.bar:after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--mute)}
+.strat{padding:10px 0;border-bottom:1px solid var(--line)}
+.strat:last-child{border:0}
+.strat .h{display:flex;justify-content:space-between;gap:8px;font-weight:600}
+.strat p{margin:2px 0;color:var(--mute);font-size:13.5px}
+.chart{width:100%;height:auto;display:block;background:#fafcfb;border-radius:8px}
+.chart .bb{fill:none;stroke:#9aaeb3;stroke-width:1;stroke-dasharray:3 3}
+.chart .e20{fill:none;stroke:var(--acc);stroke-width:1.5}
+.chart .e50{fill:none;stroke:var(--amb);stroke-width:1.5}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--mute);margin-top:6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kv div{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line)}
+.kv div:last-child{border:0}
+.kv b{direction:ltr}
+.news a{color:var(--ink);text-decoration:none}
+.news a:hover{text-decoration:underline}
+.news li{padding:6px 0;border-bottom:1px solid var(--line);list-style:none}
+.news ul{padding:0;margin:0}
+.tag{display:inline-block;font-size:11px;padding:0 6px;border-radius:4px;margin-left:6px;color:#fff}
+.err{border-color:var(--down);color:var(--down)}
+.note{background:#fbf6e6;border:1px solid #ecd9a0;border-radius:8px;padding:10px 12px;font-size:13px;margin-top:12px;color:#5b4710}
+@media(max-width:620px){.grid2{grid-template-columns:1fr}.vlabel{font-size:22px}.price b{font-size:26px}}
+@media(prefers-reduced-motion:no-preference){.verdict .gauge i{transition:left .6s ease}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>دستیار تصمیم‌گیری معامله</h1>
+<p class="sub">نام یا نماد رمزارز را وارد کنید؛ داده‌ها، تحلیل تکنیکال، اخبار و چند سبک معاملاتی کنار هم جمع می‌شوند.</p>
+<form id="f">
+<input id="q" placeholder="BTC / اتریوم / solana" autocomplete="off" aria-label="نام رمزارز">
+<button class="go" id="btn">تحلیل کن</button>
+</form>
+<div class="chips" id="chips"></div>
+<div class="set">
+<label>تایم‌فریم سبک‌ها
+<select id="tf"><option value="15m">۱۵ دقیقه</option><option value="1h">۱ ساعت</option><option value="4h" selected>۴ ساعت</option><option value="1d">روزانه</option></select></label>
+<label>سرمایه (USDT) <input id="cap" type="number" value="1000" min="1"></label>
+<label>ریسک هر معامله (٪) <input id="risk" type="number" value="1" min="0.1" max="10" step="0.1"></label>
+<label><input type="checkbox" id="auto"> بروزرسانی خودکار هر ۱ دقیقه</label>
+<button type="button" id="pip" class="go">پنجره شناور</button>
+</div>
+<div id="out"></div>
+</div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clamp=(x,a=-1,b=1)=>Math.max(a,Math.min(b,x));
+const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+
+/* ---------- نام‌ها ---------- */
+const NAMES={bitcoin:'BTC',بیتکوین:'BTC',ethereum:'ETH',اتریوم:'ETH',solana:'SOL',سولانا:'SOL',ripple:'XRP',ریپل:'XRP',cardano:'ADA',کاردانو:'ADA',dogecoin:'DOGE',دوجکوین:'DOGE',دوج:'DOGE',binancecoin:'BNB',بایننسکوین:'BNB',toncoin:'TON',تون:'TON',tron:'TRX',ترون:'TRX',polkadot:'DOT',پولکادات:'DOT',avalanche:'AVAX',chainlink:'LINK',چینلینک:'LINK',litecoin:'LTC',لایتکوین:'LTC',shiba:'SHIB',شیبا:'SHIB',pepe:'PEPE',پپه:'PEPE',notcoin:'NOT',نات‌کوین:'NOT',نات:'NOT'};
+function toSym(s){
+  s=s.trim().toLowerCase().replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/[\u200c\s]/g,'');
+  if(NAMES[s])return NAMES[s];
+  return s.toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/(USDT|USD)$/,'')||null;
+}
+$('chips').innerHTML=['BTC','ETH','SOL','XRP','DOGE','TON','TRX','LINK'].map(x=>`<button type="button" data-s="${x}">${x}</button>`).join('');
+$('chips').onclick=e=>{const s=e.target.dataset.s;if(s){$('q').value=s;run()}};
+
+/* ---------- دریافت داده ---------- */
+const get=(u,ms=6500)=>{const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);
+  return fetch(u,{signal:c.signal}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).finally(()=>clearTimeout(t))};
+const TFS=[
+ {k:'15m',n:'۱۵ دقیقه',sec:900,nb:'15',by:'15',bn:'15m',w:.1},
+ {k:'1h',n:'۱ ساعت',sec:3600,nb:'60',by:'60',bn:'1h',w:.2},
+ {k:'4h',n:'۴ ساعت',sec:14400,nb:'240',by:'240',bn:'4h',w:.3},
+ {k:'1d',n:'روزانه',sec:86400,nb:'D',by:'D',bn:'1d',w:.4}];
+const bin=host=>async(sym,tf)=>(await get(`${host}/api/v3/klines?symbol=${sym}USDT&interval=${tf.bn}&limit=300`))
+  .map(r=>({t:r[0],o:+r[1],h:+r[2],l:+r[3],c:+r[4],v:+r[5]}));
+const SRC=[
+ {id:'Nobitex',f:async(sym,tf)=>{const to=Math.floor(Date.now()/1000);
+   const j=await get(`https://api.nobitex.ir/market/udf/history?symbol=${sym}USDT&resolution=${tf.nb}&from=${to-tf.sec*300}&to=${to}`);
+   if(j.s!=='ok'||!j.t||j.t.length<60)throw new Error('no data');
+   return j.t.map((t,i)=>({t:t*1000,o:+j.o[i],h:+j.h[i],l:+j.l[i],c:+j.c[i],v:+j.v[i]}))}},
+ {id:'Binance (mirror)',f:bin('https://data-api.binance.vision')},
+ {id:'Bybit',f:async(sym,tf)=>{const j=await get(`https://api.bybit.com/v5/market/kline?category=spot&symbol=${sym}USDT&interval=${tf.by}&limit=300`);
+   if(!j.result||!j.result.list||j.result.list.length<60)throw new Error('no data');
+   return j.result.list.map(r=>({t:+r[0],o:+r[1],h:+r[2],l:+r[3],c:+r[4],v:+r[5]})).reverse()}},
+ {id:'Binance',f:bin('https://api.binance.com')}];
+let pref=null;
+async function loadTF(sym,tf,log){
+  const order=[...SRC].sort((a,b)=>(b.id===pref)-(a.id===pref));
+  for(const s of order){
+    try{const cd=await s.f(sym,tf);if(cd.length<60)throw new Error('short');pref=s.id;log.push({src:s.id,ok:1});return{cd,src:s.id}}
+    catch(e){log.push({src:s.id,ok:0})}
+  }
+  throw new Error('no source');
+}
+async function getMarket(sym){
+  const s=await get(`https://api.coingecko.com/api/v3/search?query=${sym}`);
+  const co=(s.coins||[]).find(x=>x.symbol.toUpperCase()===sym)||(s.coins||[])[0];
+  if(!co)return null;
+  const m=await get(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${co.id}`);
+  return m&&m[0]?m[0]:null;
+}
+const getFng=async()=>{const j=await get('https://api.alternative.me/fng/?limit=1');const d=j.data[0];return{v:+d.value,c:d.value_classification}};
+const POS=['surge','rally','soar','approve','approval','adoption','partnership','gain','record','bullish','inflow','upgrade','launch','breakout','jump','etf','accumulat','rebound'];
+const NEG=['hack','crash','ban','lawsuit','sues','drop','plunge','fraud','outflow','bearish','liquidat','delist','exploit','scam','fall','slump','investigat','selloff','sell-off','fine'];
+async function getNews(sym){
+  const j=await get(`https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories=${sym}`);
+  const items=(j.Data||[]).slice(0,10).map(x=>{
+    const t=(x.title||'').toLowerCase();
+    const sc=clamp(POS.filter(w=>t.includes(w)).length-NEG.filter(w=>t.includes(w)).length,-1,1);
+    return{title:x.title,src:x.source_info?x.source_info.name:x.source,url:x.url,ts:x.published_on*1000,sc};
+  });
+  return items;
+}
+
+/* ---------- اندیکاتورها ---------- */
+const sma=(a,p)=>a.map((_,i)=>i<p-1?null:avg(a.slice(i-p+1,i+1)));
+function ema(a,p){const k=2/(p+1),r=[];let e=null;
+  a.forEach((v,i)=>{if(i<p-1){r.push(null);return}
+    if(e===null)e=avg(a.slice(0,p));else e=v*k+e*(1-k);r.push(e)});return r}
+function rsi(a,p=14){const r=Array(a.length).fill(null);if(a.length<=p)return r;
+  let g=0,l=0;for(let i=1;i<=p;i++){const d=a[i]-a[i-1];d>=0?g+=d:l-=d}g/=p;l/=p;
+  r[p]=100-100/(1+(l===0?1e9:g/l));
+  for(let i=p+1;i<a.length;i++){const d=a[i]-a[i-1];g=(g*(p-1)+Math.max(d,0))/p;l=(l*(p-1)+Math.max(-d,0))/p;r[i]=100-100/(1+(l===0?1e9:g/l))}
+  return r}
+function macd(c){const e12=ema(c,12),e26=ema(c,26);
+  const line=c.map((_,i)=>e12[i]!==null&&e26[i]!==null?e12[i]-e26[i]:null);
+  const f=line.findIndex(x=>x!==null);const sig=Array(f).fill(null).concat(ema(line.slice(f),9));
+  return{line,sig,hist:line.map((v,i)=>v!==null&&sig[i]!==null?v-sig[i]:null)}}
+function boll(c,p=20,k=2){const m=sma(c,p),u=[],l=[];
+  m.forEach((mu,i)=>{if(mu===null){u.push(null);l.push(null);return}
+    const s=c.slice(i-p+1,i+1),sd=Math.sqrt(avg(s.map(y=>(y-mu)**2)));u.push(mu+k*sd);l.push(mu-k*sd)});
+  return{m,u,l}}
+function atr(cd,p=14){const t=[];for(let i=1;i<cd.length;i++){const x=cd[i],pc=cd[i-1].c;t.push(Math.max(x.h-x.l,Math.abs(x.h-pc),Math.abs(x.l-pc)))}
+  if(t.length<p)return null;let a=avg(t.slice(0,p));for(let i=p;i<t.length;i++)a=(a*(p-1)+t[i])/p;return a}
+function analyze(cd){
+  const c=cd.map(x=>x.c),n=c.length,L=n-1;
+  const e20=ema(c,20),e50=ema(c,50),e200=ema(c,200),r=rsi(c),m=macd(c),b=boll(c);
+  return{cd,c,n,close:c[L],e20,e50,e200,r,m,b,atr:atr(cd),
+    ema20:e20[L],ema50:e50[L],ema200:e200[L],rsi:r[L],hist:m.hist[L],bu:b.u[L],bl:b.l[L]}}
+function tfScore(A){
+  const p=[A.close>A.ema50?1:-1,A.ema20>A.ema50?1:-1,A.hist>0?1:-1,A.rsi>50?1:-1];
+  if(A.ema200!==null)p.push(A.ema50>A.ema200?1:-1);
+  return avg(p)}
+const trendLabel=s=>s>=.6?['صعودی قوی','up']:s>=.2?['صعودی','up']:s>-.2?['خنثی / رنج','amb']:s>-.6?['نزولی','down']:['نزولی قوی','down'];
+
+/* ---------- سبک‌های معاملاتی ---------- */
+function strategies(A){
+  const cl=A.close,o=[];
+  const tr=(A.ema20>A.ema50?.4:-.4)+(cl>A.ema50?.3:-.3)+(A.hist>0?.3:-.3);
+  o.push({name:'دنبال‌کردن روند',s:tr,text:`EMA20 ${A.ema20>A.ema50?'بالای':'زیر'} EMA50، قیمت ${cl>A.ema50?'بالای':'زیر'} EMA50 و هیستوگرام MACD ${A.hist>0?'مثبت':'منفی'} است.`,w:.2});
+  let mr=0;const rs=A.rsi;
+  if(rs<30)mr+=.8;else if(rs<40)mr+=.4;else if(rs>70)mr-=.8;else if(rs>60)mr-=.4;
+  const pb=(cl-A.bl)/(A.bu-A.bl);if(pb<.05)mr+=.2;else if(pb>.95)mr-=.2;
+  o.push({name:'بازگشت به میانگین',s:clamp(mr),text:`RSI برابر ${rs.toFixed(0)} و موقعیت قیمت در باند بولینگر ${(pb*100).toFixed(0)}٪ است (زیر ۳۰ اشباع فروش، بالای ۷۰ اشباع خرید).`,w:.1});
+  const prev=A.cd.slice(-21,-1),hh=Math.max(...prev.map(x=>x.h)),ll=Math.min(...prev.map(x=>x.l));
+  const vr=avg(prev.map(x=>x.v))?avg(A.cd.slice(-3).map(x=>x.v))/avg(prev.map(x=>x.v)):1;
+  let bo=0,bt='قیمت داخل محدوده ۲۰ کندل اخیر است؛ شکست مهمی رخ نداده.';
+  if(cl>hh){bo=vr>1.3?.8:.4;bt=`شکست سقف ۲۰ کندل اخیر ${vr>1.3?'با حجم بالا (تأییدشده)':'با حجم معمولی (ضعیف‌تر)'}.`}
+  else if(cl<ll){bo=vr>1.3?-.8:-.4;bt=`شکست کف ۲۰ کندل اخیر ${vr>1.3?'با حجم بالا (تأییدشده)':'با حجم معمولی'}.`}
+  o.push({name:'شکست محدوده',s:bo,text:bt,w:.1});
+  const roc=(cl/A.c[A.n-15]-1)*100,ap=A.atr/cl*100;
+  o.push({name:'مومنتوم',s:clamp(roc/(ap*3.7)/2),text:`تغییر قیمت در ۱۴ کندل اخیر ${roc.toFixed(1)}٪ است (نوسان معمول هر کندل ${ap.toFixed(2)}٪).`,w:.1});
+  return o}
+
+/* ---------- حمایت و مقاومت ---------- */
+function levels(A){
+  const cd=A.cd.slice(-150),w=4,H=[],L=[];
+  for(let i=w;i<cd.length-w;i++){const s=cd.slice(i-w,i+w+1);
+    if(cd[i].h===Math.max(...s.map(x=>x.h)))H.push(cd[i].h);
+    if(cd[i].l===Math.min(...s.map(x=>x.l)))L.push(cd[i].l)}
+  const p=A.close,uq=a=>{const r=[];a.forEach(v=>{if(!r.some(u=>Math.abs(u-v)/v<.006))r.push(v)});return r};
+  return{res:uq(H.filter(v=>v>p).sort((a,b)=>a-b)).slice(0,3),sup:uq(L.filter(v=>v<p).sort((a,b)=>b-a)).slice(0,3)}}
+
+/* ---------- ترکیب نهایی ---------- */
+function compute(S){
+  const key=S.ana[$('tf').value]?$('tf').value:'1h',A=S.ana[key];
+  let wsum=0,ws=0;TFS.forEach(t=>{const a=S.ana[t.k];if(a){ws+=tfScore(a)*t.w;wsum+=t.w}});
+  const mtf=ws/wsum;
+  const parts=[{name:'هم‌جهتی تایم‌فریم‌ها',s:mtf,w:.3,text:'میانگین وزنی روند ۱۵د/۱س/۴س/روزانه (وزن بیشتر برای تایم‌فریم بالاتر).'}];
+  strategies(A).forEach(x=>parts.push(x));
+  if(S.news&&S.news.length>=3){const ns=clamp(avg(S.news.map(x=>x.sc))*2);
+    parts.push({name:'احساس اخبار',s:ns,w:.1,text:`برآورد ساده بر اساس کلمات کلیدی ${S.news.length} تیتر اخیر؛ دقیق نیست.`})}
+  if(S.fng){parts.push({name:'ترس و طمع بازار',s:clamp((50-S.fng.v)/50*.6),w:.1,text:`شاخص ${S.fng.v} (${S.fng.c}). ترس شدید معمولاً فرصت خرید و طمع شدید هشدار ریزش است؛ در روندهای قوی این قاعده کم‌اثر می‌شود.`})}
+  const tw=parts.reduce((x,p)=>x+p.w,0),total=parts.reduce((x,p)=>x+p.s*p.w,0)/tw;
+  return{A,key,parts,total,mtf}}
+const verdict=s=>s>=.5?['خرید قوی','up']:s>=.2?['تمایل به خرید','up']:s<=-.5?['فروش / خروج قوی','down']:s<=-.2?['تمایل به فروش / خروج','down']:['صبر و نگاه‌داشتن (سیگنال روشن نیست)','amb'];
+
+/* ---------- نمایش ---------- */
+const fmt=n=>{if(n==null||isNaN(n))return'—';const a=Math.abs(n);
+  if(a>=1000)return n.toLocaleString('en-US',{maximumFractionDigits:2});
+  if(a>=1)return n.toLocaleString('en-US',{maximumFractionDigits:4});
+  return n.toPrecision(4)};
+const pct=n=>`<span class="pill ${n>=0?'up':'down'}">${n>=0?'+':''}${n.toFixed(2)}٪</span>`;
+const bar=s=>`<div class="bar"><i style="${s>=0?`left:50%;width:${s*50}%;background:var(--up)`:`right:50%;width:${-s*50}%;background:var(--down)`}"></i></div>`;
+function ago(ts){const h=(Date.now()-ts)/36e5;return h<1?'کمتر از ۱ ساعت پیش':h<24?Math.floor(h)+' ساعت پیش':Math.floor(h/24)+' روز پیش'}
+
+function chartSVG(A,lv){
+  const N=Math.min(110,A.n),off=A.n-N,cd=A.cd.slice(off),W=720,H=280,pd=8;
+  const bu=A.b.u.slice(off).filter(x=>x),bl=A.b.l.slice(off).filter(x=>x);
+  const hi=Math.max(...cd.map(x=>x.h),...bu),lo=Math.min(...cd.map(x=>x.l),...bl);
+  const y=v=>pd+(hi-v)/(hi-lo)*(H-2*pd),cw=W/N,x=i=>i*cw+cw/2;
+  const path=(arr,cls)=>{let d='';arr.slice(off).forEach((v,i)=>{if(v!==null)d+=(d?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)});return `<path d="${d}" class="${cls}"/>`};
+  let s=`<svg viewBox="0 0 ${W} ${H}" class="chart" dir="ltr" role="img" aria-label="نمودار شمعی همراه با EMA و باند بولینگر">`;
+  s+=path(A.b.u,'bb')+path(A.b.l,'bb');
+  cd.forEach((k,i)=>{const col=k.c>=k.o?'var(--up)':'var(--down)';
+    s+=`<line x1="${x(i)}" x2="${x(i)}" y1="${y(k.h)}" y2="${y(k.l)}" stroke="${col}"/><rect x="${x(i)-cw*.32}" y="${y(Math.max(k.o,k.c))}" width="${cw*.64}" height="${Math.max(1,Math.abs(y(k.o)-y(k.c)))}" fill="${col}"/>`});
+  s+=path(A.e20,'e20')+path(A.e50,'e50');
+  lv.res.map(v=>[v,'var(--down)']).concat(lv.sup.map(v=>[v,'var(--up)'])).forEach(([v,c])=>{
+    if(v<hi&&v>lo)s+=`<line x1="0" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="${c}" stroke-dasharray="6 4" opacity=".7"/><text x="${W-4}" y="${y(v)-3}" font-size="11" text-anchor="end" fill="${c}">${fmt(v)}</text>`});
+  return s+'</svg>'}
+
+let S=null;
+function render(){
+  if(!S)return;
+  const R=compute(S),A=R.A,v=verdict(R.total),lv=levels(A);
+  const a1=S.ana['1h'],a1d=S.ana['1d'],m=S.market;
+  const ch24=a1?(a1.close/a1.c[a1.n-25]-1)*100:null;
+  const h24=a1?a1.cd.slice(-24):[];
+  const ch7=S.ana['4h']?(S.ana['4h'].close/S.ana['4h'].c[S.ana['4h'].n-43]-1)*100:null;
+  const ch30=a1d?(a1d.close/a1d.c[a1d.n-31]-1)*100:null;
+  let h=`<section><div class="price"><span style="font-size:18px;font-weight:700;direction:ltr">${S.sym}/USDT</span><b>${fmt(A.close)}</b>
+    ${ch24!=null?`<span>۲۴ساعت ${pct(ch24)}</span>`:''}${ch7!=null?`<span>۷روز ${pct(ch7)}</span>`:''}${ch30!=null?`<span>۳۰روز ${pct(ch30)}</span>`:''}</div>
+    <div class="mute">${m?`${esc(m.name)} · رتبه ${m.market_cap_rank||'—'} · ارزش بازار $${fmt(m.market_cap)} · حجم ۲۴س $${fmt(m.total_volume)} · فاصله تا سقف تاریخی ${m.ath_change_percentage.toFixed(0)}٪`:'اطلاعات ارزش بازار در دسترس نبود.'}
+    ${h24.length?` · بازه ۲۴ساعته ${fmt(Math.min(...h24.map(x=>x.l)))} تا ${fmt(Math.max(...h24.map(x=>x.h)))}`:''}</div></section>`;
+  const pos=(R.total+1)/2*100;
+  h+=`<section class="verdict"><h2>جمع‌بندی</h2><p class="vlabel ${v[1]}">${v[0]}</p>
+    <div class="gauge"><i style="left:${pos}%"></i><span style="left:${pos}%">${R.total.toFixed(2)}</span></div>
+    <div class="ends"><span>فروش</span><span>خنثی</span><span>خرید</span></div>
+    <p class="mute">این امتیاز میانگین وزنی چند دیدگاه است (از ۱- تا ۱+). اگر دیدگاه‌ها با هم مخالف باشند، اعتماد به سیگنال کمتر است.</p>
+    ${R.parts.map(p=>`<div class="strat"><div class="h"><span>${p.name}</span><span class="pill ${p.s>=.15?'up':p.s<=-.15?'down':'amb'}">${p.s>0?'+':''}${p.s.toFixed(2)}</span></div>${bar(p.s)}<p>${p.text}</p></div>`).join('')}</section>`;
+  h+=`<section><h2>روند در تایم‌فریم‌ها</h2><div style="overflow-x:auto"><table><tr><th>بازه</th><th>روند</th><th>RSI</th><th>MACD</th><th>EMA50</th><th>EMA200</th></tr>
+    ${TFS.map(t=>{const a=S.ana[t.k];if(!a)return`<tr><td>${t.n}</td><td colspan="5" class="mute">داده نیامد</td></tr>`;const l=trendLabel(tfScore(a));
+      return`<tr><td>${t.n}</td><td class="${l[1]}">${l[0]}</td><td class="n">${a.rsi.toFixed(0)}</td><td>${a.hist>0?'مثبت':'منفی'}</td><td class="n">${fmt(a.ema50)}</td><td class="n">${a.ema200!==null?fmt(a.ema200):'—'}</td></tr>`}).join('')}</table></div></section>`;
+  h+=`<section><h2>نمودار و سطوح مهم (${TFS.find(t=>t.k===R.key).n})</h2>${chartSVG(A,lv)}
+    <div class="legend"><span style="color:var(--acc)">— EMA20</span><span style="color:var(--amb)">— EMA50</span><span>- - باند بولینگر</span><span class="up">- - حمایت</span><span class="down">- - مقاومت</span></div>
+    <div class="grid2" style="margin-top:12px"><div class="kv"><b class="mute" style="direction:rtl">مقاومت‌ها</b>${lv.res.map(x=>`<div><span>${((x/A.close-1)*100).toFixed(1)}٪ بالاتر</span><b>${fmt(x)}</b></div>`).join('')||'<div class="mute">نزدیک سقف محدوده؛ مقاومتی ثبت نشد</div>'}</div>
+    <div class="kv"><b class="mute" style="direction:rtl">حمایت‌ها</b>${lv.sup.map(x=>`<div><span>${((1-x/A.close)*100).toFixed(1)}٪ پایین‌تر</span><b>${fmt(x)}</b></div>`).join('')||'<div class="mute">نزدیک کف محدوده؛ حمایتی ثبت نشد</div>'}</div></div></section>`;
+  // برنامه معامله
+  const cap=+$('cap').value||0,rk=(+$('risk').value||1)/100,rd=1.5*A.atr;
+  const long=R.total>=.2,short=R.total<=-.2;
+  if(long||short){
+    const d=long?1:-1,en=A.close,sl=en-d*rd,t1=en+d*rd*1.5,t2=en+d*rd*3,qty=cap*rk/rd,not=qty*en;
+    h+=`<section><h2>برنامه پیشنهادی ${long?'(خرید)':'(خروج یا شورت)'}</h2><div class="kv">
+      <div><span>ورود (قیمت فعلی)</span><b>${fmt(en)}</b></div>
+      <div><span>حد ضرر (۱٫۵ برابر ATR)</span><b class="down">${fmt(sl)} (${(Math.abs(sl/en-1)*100).toFixed(1)}٪)</b></div>
+      <div><span>هدف اول (۱٫۵ برابر ریسک)</span><b class="up">${fmt(t1)}</b></div>
+      <div><span>هدف دوم (۳ برابر ریسک)</span><b class="up">${fmt(t2)}</b></div>
+      <div><span>حجم معامله با ریسک ${(rk*100).toFixed(1)}٪ از ${fmt(cap)} USDT</span><b>${fmt(qty)} ${S.sym} ≈ ${fmt(not)} USDT</b></div></div>
+      ${not>cap?`<p class="mute amb">ارزش معامله از سرمایه بیشتر است؛ یعنی حد ضرر دور است و برای این ریسک اهرم لازم می‌شود. بهتر است ریسک را کم کنید.</p>`:''}
+      ${short?'<p class="mute">در بازار اسپات، سیگنال نزولی یعنی «وارد نشوید یا بخشی را بفروشید»؛ شورت فقط در بازار فیوچرز ممکن است.</p>':''}</section>`;
+  }else h+=`<section><h2>برنامه پیشنهادی</h2><p>سیگنال به اندازه کافی روشن نیست. معمولاً بهتر است منتظر شکست یکی از سطوح بالا یا هم‌جهت‌شدن تایم‌فریم‌ها بمانید.</p></section>`;
+  // اخبار
+  h+=`<section class="news"><h2>اخبار و فضای بازار</h2>${S.fng?`<p>شاخص ترس و طمع: <b>${S.fng.v}</b> (${S.fng.c})</p>`:'<p class="mute">شاخص ترس و طمع در دسترس نبود.</p>'}
+    ${S.news&&S.news.length?`<ul>${S.news.map(n=>`<li><span class="tag" style="background:${n.sc>0?'var(--up)':n.sc<0?'var(--down)':'var(--mute)'}">${n.sc>0?'مثبت':n.sc<0?'منفی':'خنثی'}</span><a href="${esc(n.url)}" target="_blank" rel="noopener noreferrer" dir="ltr">${esc(n.title)}</a> <span class="mute">${esc(n.src||'')} · ${ago(n.ts)}</span></li>`).join('')}</ul>`:'<p class="mute">خبری برای این ارز دریافت نشد.</p>'}</section>`;
+  const used=[...new Set(S.log.filter(x=>x.ok).map(x=>x.src))];
+  h+=`<div class="note"><b>منابع این تحلیل:</b> قیمت‌ها از ${used.join('، ')||'—'}${m?'، ارزش بازار از CoinGecko':''}${S.fng?'، شاخص ترس و طمع از alternative.me':''}${S.news?'، اخبار از CryptoCompare':''}.<br>
+    این ابزار فقط کمک‌تصمیم است و توصیه مالی نیست. اندیکاتورها گذشته را می‌سنجند و خبر ناگهانی می‌تواند هر سیگنالی را بی‌اثر کند. همیشه حد ضرر بگذارید و فقط با پولی ریسک کنید که تحمل از دست‌دادنش را دارید.</div>`;
+  $('out').innerHTML=h;drawPip();
+}
+
+async function run(silent){
+  silent=silent===true;
+  const sym=silent&&S?S.sym:toSym($('q').value);
+  if(!sym){$('out').innerHTML='<section class="err">نام یا نماد رمزارز را وارد کنید.</section>';return}
+  $('btn').disabled=true;
+  if(!silent){S=null;$('out').innerHTML=`<section>در حال دریافت اطلاعات ${esc(sym)} …</section>`}
+  const log=[];
+  const side=[getMarket(sym).catch(()=>null),getFng().catch(()=>null),getNews(sym).catch(()=>null)];
+  try{
+    const first=await loadTF(sym,TFS[1],log);
+    const rest=await Promise.all([TFS[0],TFS[2],TFS[3]].map(t=>loadTF(sym,t,log).catch(()=>null)));
+    const ana={'1h':analyze(first.cd)};
+    [TFS[0],TFS[2],TFS[3]].forEach((t,i)=>{if(rest[i]&&rest[i].cd.length>=60)ana[t.k]=analyze(rest[i].cd)});
+    const [market,fng,news]=await Promise.all(side);
+    S={sym,ana,market,fng,news,log};
+    render();
+  }catch(e){
+    if(!silent)$('out').innerHTML=`<section class="err"><b>داده‌ای برای «${esc(sym)}» دریافت نشد.</b><p>نماد را بررسی کنید (مثلاً BTC یا ETH). اگر نماد درست است، ممکن است منابع داده از شبکه شما در دسترس نباشند؛ در این صورت اتصال اینترنت را بررسی کنید و دوباره امتحان کنید.</p></section>`;
+  }finally{$('btn').disabled=false}
+}
+/* ---------- پنجره شناور (Picture-in-Picture) ---------- */
+const pv=document.createElement('video');pv.muted=true;pv.playsInline=true;
+const pc=document.createElement('canvas');pc.width=480;pc.height=300;
+let pipTimer=null;
+function drawPip(){
+  const x=pc.getContext('2d'),W=480,H=300;
+  x.fillStyle='#14232b';x.fillRect(0,0,W,H);
+  x.fillStyle='#fff';
+  if(!S){x.direction='rtl';x.textAlign='center';x.font='20px Tahoma,sans-serif';x.fillText('ابتدا یک رمزارز را تحلیل کنید',W/2,H/2);return}
+  const R=compute(S),A=R.A,v=verdict(R.total);
+  const col={up:'#3fcf94',down:'#ff7b6e',amb:'#f2b84b'}[v[1]];
+  x.direction='ltr';x.textAlign='left';x.font='bold 22px Tahoma,sans-serif';x.fillText(S.sym+'/USDT',16,36);
+  x.textAlign='right';x.font='bold 32px Tahoma,sans-serif';x.fillText(fmt(A.close),W-16,40);
+  x.direction='rtl';x.textAlign='center';x.fillStyle=col;x.font='bold 26px Tahoma,sans-serif';
+  x.fillText(v[1]==='amb'?'صبر و نگاه‌داشتن':v[0],W/2,92);
+  const g=x.createLinearGradient(16,0,W-16,0);g.addColorStop(0,'#ff7b6e');g.addColorStop(.5,'#e7d9a6');g.addColorStop(1,'#3fcf94');
+  x.fillStyle=g;x.fillRect(16,108,W-32,10);
+  const mx=16+(R.total+1)/2*(W-32);x.fillStyle='#fff';x.fillRect(mx-2,102,4,22);
+  x.direction='ltr';
+  TFS.forEach((t,i)=>{
+    const a=S.ana[t.k],bx=16+i*114,s=a?tfScore(a):null;
+    x.fillStyle='#1f3640';x.fillRect(bx,140,104,52);
+    x.textAlign='center';x.fillStyle='#9fb4bb';x.font='14px Tahoma,sans-serif';x.fillText(t.k,bx+52,160);
+    x.font='bold 20px Tahoma,sans-serif';
+    x.fillStyle=s===null?'#9fb4bb':s>=.2?'#3fcf94':s<=-.2?'#ff7b6e':'#f2b84b';
+    x.fillText(s===null?'—':s>=.2?'▲':s<=-.2?'▼':'■',bx+52,184);
+  });
+  x.textAlign='left';x.font='16px Tahoma,sans-serif';
+  if(R.total>=.2||R.total<=-.2){
+    const d=R.total>0?1:-1,rd=1.5*A.atr,en=A.close;
+    x.fillStyle='#fff';x.fillText('Entry '+fmt(en),16,224);
+    x.fillStyle='#ff7b6e';x.fillText('SL '+fmt(en-d*rd),16,250);
+    x.fillStyle='#3fcf94';x.fillText('TP1 '+fmt(en+d*rd*1.5),240,224);x.fillText('TP2 '+fmt(en+d*rd*3),240,250);
+  }else{x.direction='rtl';x.textAlign='center';x.fillStyle='#9fb4bb';x.fillText('سیگنال روشن نیست؛ منتظر بمانید',W/2,236)}
+  x.direction='ltr';x.textAlign='right';x.fillStyle='#9fb4bb';x.font='12px Tahoma,sans-serif';
+  x.fillText('Score '+R.total.toFixed(2)+' · '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),W-16,H-12);
+}
+async function startPip(){
+  if(!document.pictureInPictureEnabled){alert('این مرورگر پنجره شناور را پشتیبانی نمی‌کند. از Chrome اندروید استفاده کنید.');return}
+  if(!S){alert('ابتدا یک رمزارز را تحلیل کنید.');return}
+  try{
+    drawPip();
+    if(!pv.srcObject)pv.srcObject=pc.captureStream(5);
+    await pv.play();
+    await pv.requestPictureInPicture();
+    clearInterval(pipTimer);pipTimer=setInterval(drawPip,1000);
+    pv.onleavepictureinpicture=()=>clearInterval(pipTimer);
+    $('auto').checked=true;
+  }catch(e){alert('باز شدن پنجره شناور ممکن نشد. صفحه را در Chrome باز کنید و دوباره امتحان کنید.')}
+}
+$('pip').onclick=startPip;
+setInterval(()=>{if(S&&$('auto').checked)run(true)},60000);
+
+$('f').onsubmit=e=>{e.preventDefault();run()};
+['tf','cap','risk'].forEach(id=>$(id).addEventListener('input',render));
+</script>
+</body>
+</html>
